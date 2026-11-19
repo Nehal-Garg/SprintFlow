@@ -159,23 +159,11 @@ All **36 tests** run against fresh, isolated temporary SQLite databases with zer
 
 ---
 
-## System & Workflow Flowchart
+## System & Workflow Flowcharts
 
-```mermaid
-flowchart LR
-    FE["React + Vite SPA (10 Pages, Tailwind, Recharts)"]
-    AX["Axios Client (Bearer JWT)"]
-    API["FastAPI Routers (34 Routes + /docs)"]
-    GUARD["Auth & Membership Guard (401/403)"]
-    SVC["Domain Services (Project -> Story -> Task)"]
-    BG["FastAPI BackgroundTasks (Retries + 2-Layer Dedup)"]
-    DB[("SQLite + SQLAlchemy (PRAGMA foreign_keys=ON)")]
+![SprintFlow Full-Stack Architecture Flowchart](docs/diagrams/01_architecture_flowchart.png)
 
-    FE --> AX --> API --> GUARD --> SVC --> DB
-    SVC -.->|"Async Post-Response"| BG -.->|"Fresh DB Session"| DB
-```
-
-*(See all 3 detailed flowcharts — Architecture, `Project → User Story → Task` Hierarchy, and Async Background Reminder Pipeline — in [docs/FLOWCHART.md](docs/FLOWCHART.md).)*
+*(View all 3 high-resolution flowchart images — **System Architecture**, **`Project → User Story → Task` Hierarchy**, and **Async Background Reminder Pipeline** — in [docs/FLOWCHART.md](docs/FLOWCHART.md) or directly in [`docs/diagrams/`](docs/diagrams/).)*
 
 ---
 
