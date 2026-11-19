@@ -241,6 +241,9 @@ export function Projects() {
                     <span>Due: {formatDate(project.end_date)}</span>
                   </div>
                 </div>
+                <p className="text-[11px] text-[#737373] mt-2.5">
+                  Created: <span className="font-medium text-[#101010]">{formatDate(project.created_at)}</span>
+                </p>
               </div>
 
               <div className="flex items-center justify-between gap-2 mt-5 pt-3.5 border-t border-[#E5E5E5]">

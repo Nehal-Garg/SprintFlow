@@ -49,4 +49,5 @@ export const ACTIVITY_ACTION_LABELS = {
   task_assigned: 'Task Assigned',
   task_status_changed: 'Status Changed',
   task_completed: 'Task Completed',
+  task_deleted: 'Task Deleted',
 };

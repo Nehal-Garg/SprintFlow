@@ -50,7 +50,7 @@ flowchart TB
 ## 2. Repository & Directory Architecture
 
 ```text
-d:\sprintflow\
+SprintFlow/
 ├── backend/
 │   ├── app/
 │   │   ├── main.py                 # FastAPI app factory, CORS, exception handlers, router mounting

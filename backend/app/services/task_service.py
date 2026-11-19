@@ -449,7 +449,7 @@ def delete_task(
         db,
         user_id=current_user.id,
         project_id=project_id,
-        action="task_updated",
+        action="task_deleted",
         entity_type="task",
         entity_id=task_pk,
         description=f"Deleted task '{task_title}'",

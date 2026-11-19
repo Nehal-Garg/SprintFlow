@@ -22,34 +22,46 @@ from app.services.activity_service import record_activity
 from app.services.notification_service import create_task_assignment_notification
 
 
+def _get_or_create_user(db, *, full_name: str, email: str, password: str) -> User:
+    """Fetch existing user by email or create a new one without raising IntegrityError."""
+    normalized = email.strip().lower()
+    existing = db.scalar(select(User).where(User.email == normalized))
+    if existing is not None:
+        return existing
+    user = User(
+        full_name=full_name,
+        email=normalized,
+        password_hash=hash_password(password),
+    )
+    db.add(user)
+    db.flush()
+    return user
+
+
 def seed() -> None:
     init_db()
     db = SessionLocal()
     try:
-        if db.scalar(select(User).where(User.email == "arjun@sprintflow.dev")) is not None:
-            print("Demo data already present. Skipping seed.")
-            return
+        arjun = _get_or_create_user(
+            db, full_name="Arjun Mehta", email="arjun@sprintflow.dev", password="DemoPass123"
+        )
+        priya = _get_or_create_user(
+            db, full_name="Priya Nair", email="priya@sprintflow.dev", password="DemoPass123"
+        )
+        rohan = _get_or_create_user(
+            db, full_name="Rohan Verma", email="rohan@sprintflow.dev", password="DemoPass123"
+        )
 
-        users = [
-            User(
-                full_name="Arjun Mehta",
-                email="arjun@sprintflow.dev",
-                password_hash=hash_password("DemoPass123"),
-            ),
-            User(
-                full_name="Priya Nair",
-                email="priya@sprintflow.dev",
-                password_hash=hash_password("DemoPass123"),
-            ),
-            User(
-                full_name="Rohan Verma",
-                email="rohan@sprintflow.dev",
-                password_hash=hash_password("DemoPass123"),
-            ),
-        ]
-        db.add_all(users)
-        db.flush()
-        arjun, priya, rohan = users
+        existing_demo_proj = db.scalar(
+            select(Project).where(
+                Project.name == "E-Commerce Platform",
+                Project.created_by == arjun.id,
+            )
+        )
+        if existing_demo_proj is not None:
+            db.commit()
+            print("Demo data already present. Skipping duplicate project seed.")
+            return
 
         today = date.today()
         p1 = Project(

@@ -2,13 +2,16 @@ import { useCallback, useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import {
   Activity,
+  AlertTriangle,
   ArrowLeft,
   Calendar,
+  CalendarClock,
   ChevronDown,
   ChevronRight,
   Clock,
   Edit3,
   Eye,
+  Filter,
   Layers,
   Plus,
   Trash2,
@@ -55,6 +58,7 @@ export function ProjectDetails() {
   const [project, setProject] = useState(null);
   const [stories, setStories] = useState([]);
   const [tasksByStory, setTasksByStory] = useState({});
+  const [projectTasksAll, setProjectTasksAll] = useState([]);
   const [expandedStories, setExpandedStories] = useState({});
   const [activities, setActivities] = useState([]);
   const [allUsers, setAllUsers] = useState([]);
@@ -65,6 +69,13 @@ export function ProjectDetails() {
   // Story filters
   const [storyPriorityFilter, setStoryPriorityFilter] = useState('');
   const [storyStatusFilter, setStoryStatusFilter] = useState('');
+
+  // Task filters (Status, Priority, Assignee, Due Date, Overdue)
+  const [taskStatusFilter, setTaskStatusFilter] = useState('');
+  const [taskPriorityFilter, setTaskPriorityFilter] = useState('');
+  const [taskAssigneeFilter, setTaskAssigneeFilter] = useState('');
+  const [taskDueBeforeFilter, setTaskDueBeforeFilter] = useState('');
+  const [taskOverdueOnly, setTaskOverdueOnly] = useState(false);
 
   // Member add state
   const [selectedUserId, setSelectedUserId] = useState('');
@@ -85,10 +96,44 @@ export function ProjectDetails() {
   const [viewingTask, setViewingTask] = useState(null);
   const [deleteBusy, setDeleteBusy] = useState(false);
 
-  const loadTasksForStory = useCallback(async (storyId) => {
-    const res = await tasksApi.listByStory(storyId, { limit: 200 });
-    setTasksByStory((prev) => ({ ...prev, [storyId]: res.items || [] }));
-  }, []);
+  const hasTaskFilters = Boolean(
+    taskStatusFilter ||
+      taskPriorityFilter ||
+      taskAssigneeFilter ||
+      taskDueBeforeFilter ||
+      taskOverdueOnly
+  );
+
+  const buildTaskQueryParams = useCallback(() => {
+    const params = { limit: 200 };
+    if (taskStatusFilter) params.status = taskStatusFilter;
+    if (taskPriorityFilter) params.priority = taskPriorityFilter;
+    if (taskAssigneeFilter && taskAssigneeFilter !== 'unassigned') {
+      params.assignee_id = Number(taskAssigneeFilter);
+    }
+    if (taskDueBeforeFilter) params.due_before = taskDueBeforeFilter;
+    if (taskOverdueOnly) params.overdue_only = true;
+    return params;
+  }, [
+    taskStatusFilter,
+    taskPriorityFilter,
+    taskAssigneeFilter,
+    taskDueBeforeFilter,
+    taskOverdueOnly,
+  ]);
+
+  const loadTasksForStory = useCallback(
+    async (storyId) => {
+      const res = await tasksApi.listByStory(storyId, buildTaskQueryParams());
+      const items = res.items || [];
+      const filtered =
+        taskAssigneeFilter === 'unassigned'
+          ? items.filter((t) => !t.assignee_id)
+          : items;
+      setTasksByStory((prev) => ({ ...prev, [storyId]: filtered }));
+    },
+    [buildTaskQueryParams, taskAssigneeFilter]
+  );
 
   const loadWorkspace = useCallback(async () => {
     setLoading(true);
@@ -98,9 +143,10 @@ export function ProjectDetails() {
       if (storyPriorityFilter) storyParams.priority = storyPriorityFilter;
       if (storyStatusFilter) storyParams.status = storyStatusFilter;
 
-      const [projData, storiesData, actData, usersData] = await Promise.all([
+      const [projData, storiesData, allTasksData, actData, usersData] = await Promise.all([
         projectsApi.get(projectId),
         storiesApi.listByProject(projectId, storyParams),
+        tasksApi.listAll({ project_id: Number(projectId), limit: 200 }),
         activityApi.list({ project_id: projectId, limit: 10 }),
         authApi.listUsers(),
       ]);
@@ -108,16 +154,22 @@ export function ProjectDetails() {
       setProject(projData);
       const storyList = storiesData.items || [];
       setStories(storyList);
+      setProjectTasksAll(allTasksData.items || []);
       setActivities(actData.items || []);
       setAllUsers(usersData || []);
 
-      // Auto-expand all stories on first load and fetch their tasks so the 3-level hierarchy is immediately visible
+      const taskParams = buildTaskQueryParams();
       const nextExpanded = {};
       const taskEntries = await Promise.all(
         storyList.map(async (s) => {
           nextExpanded[s.id] = true;
-          const tRes = await tasksApi.listByStory(s.id, { limit: 200 });
-          return [s.id, tRes.items || []];
+          const tRes = await tasksApi.listByStory(s.id, taskParams);
+          const items = tRes.items || [];
+          const filtered =
+            taskAssigneeFilter === 'unassigned'
+              ? items.filter((t) => !t.assignee_id)
+              : items;
+          return [s.id, filtered];
         })
       );
       setExpandedStories((prev) =>
@@ -129,7 +181,13 @@ export function ProjectDetails() {
     } finally {
       setLoading(false);
     }
-  }, [projectId, storyPriorityFilter, storyStatusFilter]);
+  }, [
+    projectId,
+    storyPriorityFilter,
+    storyStatusFilter,
+    buildTaskQueryParams,
+    taskAssigneeFilter,
+  ]);
 
   useEffect(() => {
     loadWorkspace();
@@ -231,6 +289,9 @@ export function ProjectDetails() {
       await Promise.all([
         loadTasksForStory(storyId),
         projectsApi.get(projectId).then(setProject),
+        tasksApi
+          .listAll({ project_id: Number(projectId), limit: 200 })
+          .then((r) => setProjectTasksAll(r.items || [])),
         activityApi.list({ project_id: projectId, limit: 10 }).then((r) => setActivities(r.items || [])),
       ]);
       refreshUnreadCount();
@@ -271,6 +332,19 @@ export function ProjectDetails() {
 
   const existingMemberIds = new Set((project?.members || []).map((m) => m.user_id));
   const availableUsersToAdd = allUsers.filter((u) => !existingMemberIds.has(u.id));
+
+  // Project Deadlines summary derived from live project tasks
+  const todayMidnight = new Date();
+  todayMidnight.setHours(0, 0, 0, 0);
+  const upcomingCutoff = new Date(todayMidnight);
+  upcomingCutoff.setDate(upcomingCutoff.getDate() + 7);
+
+  const overdueProjectTasks = projectTasksAll.filter((t) => t.is_overdue);
+  const upcomingProjectTasks = projectTasksAll.filter((t) => {
+    if (!t.due_date || t.status === 'Done' || t.is_overdue) return false;
+    const d = new Date(`${t.due_date}T00:00:00`);
+    return d >= todayMidnight && d <= upcomingCutoff;
+  });
 
   return (
     <div className="space-y-6">
@@ -386,6 +460,96 @@ export function ProjectDetails() {
             </div>
           </div>
 
+          {/* Task Filters Bar */}
+          <Card surface className="p-3.5 flex flex-wrap items-center gap-2.5">
+            <span className="inline-flex items-center gap-1.5 text-xs font-bold text-[#101010] mr-1">
+              <Filter className="w-3.5 h-3.5 text-[#75C900]" />
+              Task Filters:
+            </span>
+
+            <select
+              value={taskStatusFilter}
+              onChange={(e) => setTaskStatusFilter(e.target.value)}
+              className="rounded-lg border border-[#E5E5E5] bg-white px-2.5 py-1.5 text-xs text-[#101010]"
+              aria-label="Filter tasks by status"
+            >
+              <option value="">All Statuses</option>
+              {TASK_STATUSES.map((s) => (
+                <option key={s} value={s}>
+                  {s}
+                </option>
+              ))}
+            </select>
+
+            <select
+              value={taskPriorityFilter}
+              onChange={(e) => setTaskPriorityFilter(e.target.value)}
+              className="rounded-lg border border-[#E5E5E5] bg-white px-2.5 py-1.5 text-xs text-[#101010]"
+              aria-label="Filter tasks by priority"
+            >
+              <option value="">All Priorities</option>
+              {PRIORITIES.map((p) => (
+                <option key={p} value={p}>
+                  {p}
+                </option>
+              ))}
+            </select>
+
+            <select
+              value={taskAssigneeFilter}
+              onChange={(e) => setTaskAssigneeFilter(e.target.value)}
+              className="rounded-lg border border-[#E5E5E5] bg-white px-2.5 py-1.5 text-xs text-[#101010]"
+              aria-label="Filter tasks by assignee"
+            >
+              <option value="">All Assignees</option>
+              <option value="unassigned">Unassigned</option>
+              {(project?.members || []).map((m) => (
+                <option key={m.user_id} value={m.user_id}>
+                  {m.full_name}
+                </option>
+              ))}
+            </select>
+
+            <div className="inline-flex items-center gap-1.5">
+              <label className="text-[11px] font-medium text-[#737373]" htmlFor="task-due-before">
+                Due ≤
+              </label>
+              <input
+                id="task-due-before"
+                type="date"
+                value={taskDueBeforeFilter}
+                onChange={(e) => setTaskDueBeforeFilter(e.target.value)}
+                className="rounded-lg border border-[#E5E5E5] bg-white px-2 py-1 text-xs text-[#101010]"
+              />
+            </div>
+
+            <label className="inline-flex items-center gap-1.5 text-xs font-medium text-[#101010] cursor-pointer">
+              <input
+                type="checkbox"
+                checked={taskOverdueOnly}
+                onChange={(e) => setTaskOverdueOnly(e.target.checked)}
+                className="rounded accent-[#75C900] w-3.5 h-3.5"
+              />
+              <span>Overdue</span>
+            </label>
+
+            {hasTaskFilters && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  setTaskStatusFilter('');
+                  setTaskPriorityFilter('');
+                  setTaskAssigneeFilter('');
+                  setTaskDueBeforeFilter('');
+                  setTaskOverdueOnly(false);
+                }}
+              >
+                Clear
+              </Button>
+            )}
+          </Card>
+
           {stories.length === 0 ? (
             <EmptyState
               icon={Layers}
@@ -500,16 +664,22 @@ export function ProjectDetails() {
                       <div className="p-4 bg-white">
                         {storyTasks.length === 0 ? (
                           <div className="text-center py-6 text-xs text-[#737373]">
-                            No tasks under this user story yet.{' '}
-                            <button
-                              type="button"
-                              onClick={() =>
-                                setTaskModalState({ open: true, story, task: null })
-                              }
-                              className="font-semibold text-[#101010] underline decoration-[#75C900] decoration-2"
-                            >
-                              Add the first task
-                            </button>
+                            {hasTaskFilters ? (
+                              <span>No tasks in this story match the active task filters.</span>
+                            ) : (
+                              <>
+                                No tasks under this user story yet.{' '}
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    setTaskModalState({ open: true, story, task: null })
+                                  }
+                                  className="font-semibold text-[#101010] underline decoration-[#75C900] decoration-2"
+                                >
+                                  Add the first task
+                                </button>
+                              </>
+                            )}
                           </div>
                         ) : (
                           <div className="divide-y divide-[#E5E5E5]">
@@ -702,6 +872,89 @@ export function ProjectDetails() {
                   </>
                 )}
               </form>
+            )}
+          </Card>
+
+          {/* Project Deadlines Card */}
+          <Card className="p-5">
+            <div className="flex items-center justify-between mb-3.5">
+              <h3 className="text-sm font-bold text-[#101010] flex items-center gap-2">
+                <CalendarClock className="w-4 h-4 text-[#75C900]" />
+                Project Deadlines
+              </h3>
+              <span className="text-[11px] font-semibold text-[#737373]">
+                Target: {formatDate(project.end_date)}
+              </span>
+            </div>
+
+            {overdueProjectTasks.length === 0 && upcomingProjectTasks.length === 0 ? (
+              <p className="text-xs text-[#737373]">
+                No overdue tasks or deadlines within the next 7 days.
+              </p>
+            ) : (
+              <div className="space-y-3">
+                {overdueProjectTasks.length > 0 && (
+                  <div>
+                    <p className="text-[11px] font-bold uppercase tracking-wide text-[#DC2626] flex items-center gap-1 mb-1.5">
+                      <AlertTriangle className="w-3.5 h-3.5" />
+                      Overdue ({overdueProjectTasks.length})
+                    </p>
+                    <div className="space-y-1.5">
+                      {overdueProjectTasks.slice(0, 5).map((t) => (
+                        <button
+                          key={t.id}
+                          type="button"
+                          onClick={() => setViewingTask(t)}
+                          className="w-full text-left p-2.5 rounded-lg bg-red-50/70 border border-red-200 hover:border-[#DC2626] transition-colors flex items-center justify-between gap-2"
+                        >
+                          <div className="min-w-0">
+                            <p className="text-xs font-semibold text-[#101010] truncate">
+                              {t.title}
+                            </p>
+                            <p className="text-[11px] text-[#737373] truncate">
+                              {t.assignee_name || 'Unassigned'}
+                            </p>
+                          </div>
+                          <span className="text-[11px] font-bold text-[#DC2626] shrink-0">
+                            {formatDate(t.due_date)}
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {upcomingProjectTasks.length > 0 && (
+                  <div>
+                    <p className="text-[11px] font-bold uppercase tracking-wide text-amber-800 flex items-center gap-1 mb-1.5">
+                      <Clock className="w-3.5 h-3.5" />
+                      Due in Next 7 Days ({upcomingProjectTasks.length})
+                    </p>
+                    <div className="space-y-1.5">
+                      {upcomingProjectTasks.slice(0, 5).map((t) => (
+                        <button
+                          key={t.id}
+                          type="button"
+                          onClick={() => setViewingTask(t)}
+                          className="w-full text-left p-2.5 rounded-lg bg-amber-50/70 border border-amber-200 hover:border-amber-500 transition-colors flex items-center justify-between gap-2"
+                        >
+                          <div className="min-w-0">
+                            <p className="text-xs font-semibold text-[#101010] truncate">
+                              {t.title}
+                            </p>
+                            <p className="text-[11px] text-[#737373] truncate">
+                              {t.assignee_name || 'Unassigned'}
+                            </p>
+                          </div>
+                          <span className="text-[11px] font-bold text-amber-800 shrink-0">
+                            {formatDate(t.due_date)}
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
             )}
           </Card>
 

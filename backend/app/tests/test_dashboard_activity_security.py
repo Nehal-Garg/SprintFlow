@@ -157,6 +157,12 @@ def test_activity_log_tracks_all_required_events_chronologically(
         json={"status": "Done"},
         headers=owner_headers,
     )
+    temp_task = client.post(
+        f"/stories/{story['id']}/tasks",
+        json={"title": "Temp Delete Task"},
+        headers=owner_headers,
+    ).json()
+    client.delete(f"/tasks/{temp_task['id']}", headers=owner_headers)
 
     # Project delete
     proj2 = client.post("/projects", json={"name": "Delete Me"}, headers=owner_headers).json()
@@ -178,6 +184,7 @@ def test_activity_log_tracks_all_required_events_chronologically(
         "task_assigned",
         "task_status_changed",
         "task_completed",
+        "task_deleted",
     }
     assert expected_actions.issubset(actions)
 

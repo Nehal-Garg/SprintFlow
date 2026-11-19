@@ -31,6 +31,7 @@ export function KanbanBoard() {
   const [projects, setProjects] = useState([]);
   const [projectFilter, setProjectFilter] = useState('');
   const [priorityFilter, setPriorityFilter] = useState('');
+  const [assigneeFilter, setAssigneeFilter] = useState('');
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -45,19 +46,35 @@ export function KanbanBoard() {
       const taskParams = { limit: 500 };
       if (projectFilter) taskParams.project_id = Number(projectFilter);
       if (priorityFilter) taskParams.priority = priorityFilter;
+      if (assigneeFilter && assigneeFilter !== 'unassigned') {
+        taskParams.assignee_id = Number(assigneeFilter);
+      }
 
       const [projRes, tasksRes] = await Promise.all([
         projectsApi.list({ limit: 100 }),
         tasksApi.listAll(taskParams),
       ]);
       setProjects(projRes.items || []);
-      setTasks(tasksRes.items || []);
+      const fetchedTasks = tasksRes.items || [];
+      setTasks(
+        assigneeFilter === 'unassigned'
+          ? fetchedTasks.filter((t) => !t.assignee_id)
+          : fetchedTasks
+      );
     } catch (err) {
       setError(extractErrorMessage(err, 'Failed to load Kanban board.'));
     } finally {
       setLoading(false);
     }
-  }, [projectFilter, priorityFilter]);
+  }, [projectFilter, priorityFilter, assigneeFilter]);
+
+  const assigneeOptions = Array.from(
+    new Map(
+      projects
+        .flatMap((p) => p.members || [])
+        .map((m) => [m.user_id, { id: m.user_id, full_name: m.full_name }])
+    ).values()
+  ).sort((a, b) => a.full_name.localeCompare(b.full_name));
 
   useEffect(() => {
     loadBoard();
@@ -151,6 +168,35 @@ export function KanbanBoard() {
               </option>
             ))}
           </select>
+
+          <select
+            value={assigneeFilter}
+            onChange={(e) => setAssigneeFilter(e.target.value)}
+            className="rounded-lg border border-[#E5E5E5] bg-white px-3 py-2 text-xs font-medium text-[#101010]"
+            aria-label="Filter Kanban by assignee"
+          >
+            <option value="">All Assignees</option>
+            <option value="unassigned">Unassigned</option>
+            {assigneeOptions.map((a) => (
+              <option key={a.id} value={a.id}>
+                {a.full_name}
+              </option>
+            ))}
+          </select>
+
+          {(projectFilter || priorityFilter || assigneeFilter) && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                setProjectFilter('');
+                setPriorityFilter('');
+                setAssigneeFilter('');
+              }}
+            >
+              Clear
+            </Button>
+          )}
 
           <Button variant="secondary" size="sm" onClick={loadBoard} loading={loading}>
             <RefreshCw className="w-3.5 h-3.5" />

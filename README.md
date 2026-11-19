@@ -79,8 +79,8 @@ SprintFlow/
 
 ### 1. Clone & Configure Environment
 ```bash
-git clone <your-repo-url>
-cd sprintflow
+git clone https://github.com/Nehal-Garg/SprintFlow.git
+cd SprintFlow
 ```
 
 Create `backend/.env` from `.env.example` (never commit `.env`):
@@ -187,3 +187,5 @@ All **36 tests** run against fresh, isolated temporary SQLite databases with zer
 - [Testing Guide & Verification](docs/TESTING.md)
 - [AI Usage Disclosure](docs/AI_USAGE.md)
 - [Future Improvements](docs/FUTURE_IMPROVEMENTS.md)
+- [Interview Q&A & Demo Narration Guide](docs/INTERVIEW_AND_DEMO_GUIDE.md)
+- [Demo Recording Folder](demo/README.md)

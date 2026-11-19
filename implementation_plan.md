@@ -1,14 +1,14 @@
 # SprintFlow — Implementation Plan & Requirement Traceability
 
 > **Application:** SprintFlow — Agile Project Management Tool for Small Teams (3–10 Users)  
-> **Workspace:** `d:\sprintflow`  
-> **Architecture Reference:** [architecture.md](file:///d:/sprintflow/architecture.md)
+> **Repository:** [Nehal-Garg/SprintFlow](https://github.com/Nehal-Garg/SprintFlow)  
+> **Architecture Reference:** [architecture.md](architecture.md)
 
 ---
 
 ## 1. Workspace Inspection Findings
 
-The workspace `d:\sprintflow` is currently clean (empty directory), and all required runtimes are available locally:
+During Phase 1 setup, the repository was initialized from a clean directory with the following local runtimes verified:
 
 | Tool / Runtime | Detected Version | Role |
 |---|---|---|
@@ -38,7 +38,7 @@ Work will proceed strictly in the 10 specified phases, reporting files created/m
 
 ### Phase 1: Workspace Inspection, Requirements Analysis, Plan & Architecture *(Current Phase)*
 - Inspect workspace & runtime environment.
-- Produce [implementation_plan.md](file:///d:/sprintflow/implementation_plan.md) and [architecture.md](file:///d:/sprintflow/architecture.md) with full requirement traceability.
+- Produce [implementation_plan.md](implementation_plan.md) and [architecture.md](architecture.md) with full requirement traceability.
 - **Gate:** Wait for user review and approval before starting Phase 2.
 
 ### Phase 2: Database Setup, SQLAlchemy Models & Relationships
