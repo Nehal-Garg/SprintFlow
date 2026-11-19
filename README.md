@@ -159,6 +159,26 @@ All **36 tests** run against fresh, isolated temporary SQLite databases with zer
 
 ---
 
+## System & Workflow Flowchart
+
+```mermaid
+flowchart LR
+    FE["React + Vite SPA (10 Pages, Tailwind, Recharts)"]
+    AX["Axios Client (Bearer JWT)"]
+    API["FastAPI Routers (34 Routes + /docs)"]
+    GUARD["Auth & Membership Guard (401/403)"]
+    SVC["Domain Services (Project -> Story -> Task)"]
+    BG["FastAPI BackgroundTasks (Retries + 2-Layer Dedup)"]
+    DB[("SQLite + SQLAlchemy (PRAGMA foreign_keys=ON)")]
+
+    FE --> AX --> API --> GUARD --> SVC --> DB
+    SVC -.->|"Async Post-Response"| BG -.->|"Fresh DB Session"| DB
+```
+
+*(See all 3 detailed flowcharts — Architecture, `Project → User Story → Task` Hierarchy, and Async Background Reminder Pipeline — in [docs/FLOWCHART.md](docs/FLOWCHART.md).)*
+
+---
+
 ## Application Screenshots
 
 | Login | Live Analytics Dashboard |
@@ -180,6 +200,7 @@ All **36 tests** run against fresh, isolated temporary SQLite databases with zer
 ## Documentation Index
 
 - [Architecture Overview](docs/ARCHITECTURE.md)
+- [System & Workflow Flowcharts](docs/FLOWCHART.md)
 - [Database Schema & ER Diagram](docs/DATABASE.md)
 - [API Documentation](docs/API_DOCUMENTATION.md)
 - [Design Decisions & Tradeoffs](docs/DESIGN_DECISIONS.md)
