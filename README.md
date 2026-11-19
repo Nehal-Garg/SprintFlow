@@ -159,6 +159,24 @@ All **36 tests** run against fresh, isolated temporary SQLite databases with zer
 
 ---
 
+## Application Screenshots
+
+| Login | Live Analytics Dashboard |
+|---|---|
+| ![Login](screenshots/01_login.png) | ![Dashboard](screenshots/02_dashboard.png) |
+
+| Project Details (`Project → Story → Task`) | Kanban Board |
+|---|---|
+| ![Project Details](screenshots/04_project_details.png) | ![Kanban Board](screenshots/05_kanban_board.png) |
+
+| Notifications & Background Job Audit | Interactive Swagger API Docs |
+|---|---|
+| ![Notifications](screenshots/07_notifications.png) | ![Swagger UI](screenshots/10_swagger_docs.png) |
+
+*(Additional views available in [`screenshots/`](screenshots/): `03_projects.png`, `06_my_tasks.png`, `08_activity_log.png`, and `09_settings.png`.)*
+
+---
+
 ## Documentation Index
 
 - [Architecture Overview](docs/ARCHITECTURE.md)

@@ -150,7 +150,7 @@ export function Notifications() {
 
       {/* Optional Background Job Log Inspector */}
       {showJobLogs && (
-        <Card className="p-5 bg-[#101010] text-white border-neutral-800">
+        <div className="rounded-xl border border-neutral-800 bg-[#101010] text-white p-5 shadow-card">
           <div className="flex items-center justify-between mb-3">
             <div>
               <h3 className="text-sm font-bold text-white flex items-center gap-2">
@@ -158,7 +158,7 @@ export function Notifications() {
                 FastAPI BackgroundTasks Execution Audit
               </h3>
               <p className="text-xs text-neutral-400">
-                Recent deadline reminder runs, deduplication skips, and retry counts recorded in SQLite (`background_job_logs`).
+                Recent deadline reminder runs, deduplication skips, and retry counts recorded in SQLite (background_job_logs).
               </p>
             </div>
           </div>
@@ -195,7 +195,7 @@ export function Notifications() {
                           {log.status}
                         </span>
                       </td>
-                      <td className="py-2 pr-3">{log.attempts}</td>
+                      <td className="py-2 pr-3 text-white font-semibold">{log.attempts}</td>
                       <td className="py-2 pr-3 text-neutral-200">
                         {log.result_summary || log.error_message || '—'}
                       </td>
@@ -208,7 +208,7 @@ export function Notifications() {
               </table>
             </div>
           )}
-        </Card>
+        </div>
       )}
 
       {/* Notifications List */}
