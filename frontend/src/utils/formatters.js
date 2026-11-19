@@ -9,10 +9,18 @@ export function formatDate(dateStr) {
   });
 }
 
+function parseUtcTimestamp(dateStr) {
+  if (!dateStr) return null;
+  const hasTz = /(?:Z|[+-]\d{2}:\d{2})$/i.test(dateStr);
+  const normalized = dateStr.includes('T') && !hasTz ? `${dateStr}Z` : dateStr;
+  const parsed = new Date(normalized);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+}
+
 export function formatDateTime(dateStr) {
   if (!dateStr) return '—';
-  const parsed = new Date(dateStr);
-  if (Number.isNaN(parsed.getTime())) return dateStr;
+  const parsed = parseUtcTimestamp(dateStr);
+  if (!parsed) return dateStr;
   return parsed.toLocaleString('en-US', {
     month: 'short',
     day: 'numeric',
@@ -24,9 +32,9 @@ export function formatDateTime(dateStr) {
 
 export function formatRelativeTime(dateStr) {
   if (!dateStr) return '';
-  const parsed = new Date(dateStr);
-  if (Number.isNaN(parsed.getTime())) return '';
-  const diffSec = Math.floor((Date.now() - parsed.getTime()) / 1000);
+  const parsed = parseUtcTimestamp(dateStr);
+  if (!parsed) return '';
+  const diffSec = Math.max(0, Math.floor((Date.now() - parsed.getTime()) / 1000));
   if (diffSec < 60) return 'Just now';
   const diffMin = Math.floor(diffSec / 60);
   if (diffMin < 60) return `${diffMin}m ago`;
