@@ -2,8 +2,6 @@
 
 Place your SprintFlow walkthrough screen recording (e.g., `sprintflow-demo.mp4`) in this folder, or link to it below if the file exceeds GitHub's 100 MB limit.
 
-## Recording Link *(Optional)*
-- **Demo Video URL:** `<paste-youtube-or-google-drive-link-here>`
 
 ## What the Demo Covers (5–7 Minutes)
 1. Technology stack & architecture overview
@@ -17,4 +15,3 @@ Place your SprintFlow walkthrough screen recording (e.g., `sprintflow-demo.mp4`)
 9. Interactive Swagger UI (`/docs`)
 10. Automated Pytest suite (`36 passed`)
 
-*(Full narration script available in [../docs/INTERVIEW_AND_DEMO_GUIDE.md](../docs/INTERVIEW_AND_DEMO_GUIDE.md).)*
