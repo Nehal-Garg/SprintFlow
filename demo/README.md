@@ -1,8 +1,5 @@
 # SprintFlow — Demo Screen Recording
 
-Place your SprintFlow walkthrough screen recording (e.g., `sprintflow-demo.mp4`) in this folder, or link to it below if the file exceeds GitHub's 100 MB limit.
-
-
 ## What the Demo Covers (5–7 Minutes)
 1. Technology stack & architecture overview
 2. User registration, login, bcrypt + PyJWT authentication
